@@ -6,7 +6,6 @@ const _ = require('lodash');
 
 var count = 0;
 var gameState = null;
-var nextMove = "up";
 var waitingForSnakeMove = false;
 var gameInstance = null;
 
@@ -16,15 +15,23 @@ class SnakeModel {
         this.snakeJSON = snakeJSON;
         this.name = _.get(snakeJSON, 'name');
         this.id = _.get(snakeJSON, 'id');
+        this.move = "up";
         this.coords = null;
     }
     updateState(snakeJSON) {
-        this.gameModel = gameModel;
         this.snakeJSON = snakeJSON;
         this.coords = _.get(snakeJSON, 'coords');
         console.log("snakeCoords", this.coords);
     }
-
+    set move(move) {
+        this.nextMove = move;
+        // insert some kind of safety here.
+        return true;
+    }
+    get move() {
+        // maybe do some last minute safety checks here
+        return this.nextMove;
+    }
 }
 
 class GameModel {
@@ -70,6 +77,12 @@ class GameModel {
         this.updateSnakes();
         this.populateBoard();
     }
+    get player () {
+        return this.snakes[this.playerId];
+    }
+    set player (player) {
+        this.playerId = player.id;
+    }
 }
 
 function start(game) {
@@ -90,13 +103,12 @@ function move(data) {
     }
     gameInstance.updateState(data);
     console.log("move", count++, data , _.get(data, "test"));
-    var move = nextMove;
     if (waitingForSnakeMove) {
         // if the control AI hasn't responded, then let's use a fallback AI.
     }
     waitingForSnakeMove = true;
     return {
-        move: nextMove,
+        move: gameInstance.player.move,
         taunt: "Boop the snoot!",
     };
 }
@@ -105,7 +117,7 @@ function setMove(data) {
     var d = _.get(data, "d");
     console.log("set-move", data, d);
     waitingForSnakeMove = false;
-    nextMove = d;
+    gameInstance.player.move = d;
 }
 
 function getState() {
