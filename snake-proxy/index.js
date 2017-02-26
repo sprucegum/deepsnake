@@ -8,6 +8,9 @@ var count = 0;
 var gameState = null;
 var waitingForSnakeMove = false;
 var gameInstance = null;
+var gameResponse = null;
+var gameResponseTimeout = null;
+var gameTimeout = 5000;
 
 class SnakeModel {
     constructor(snakeJSON, gameModel) {
@@ -97,7 +100,7 @@ function start(game) {
     }
 }
 
-function move(data) {
+function move(data, res) {
     if (!gameInstance) {
         gameInstance = new GameModel(data);
     }
@@ -107,10 +110,19 @@ function move(data) {
         // if the control AI hasn't responded, then let's use a fallback AI.
     }
     waitingForSnakeMove = true;
-    return {
+    gameResponse = res;
+    setTimeout(() => {
+        if (gameResponse) {
+            gameResponse({
+                move: gameInstance.player.move,
+                taunt: "Boop the snoot!",
+            });
+        }
+    }, gameTimeout);
+    /*res({
         move: gameInstance.player.move,
         taunt: "Boop the snoot!",
-    };
+    });*/
 }
 
 function setMove(data) {
@@ -118,6 +130,14 @@ function setMove(data) {
     console.log("set-move", data, d);
     waitingForSnakeMove = false;
     gameInstance.player.move = d;
+    if (gameResponse) {
+        gameResponse({
+            move: gameInstance.player.move,
+            taunt: "Boop the snoot!",
+        });
+        gameResponse = null;
+    }
+
 }
 
 function getState() {
@@ -139,17 +159,20 @@ http.createServer((req, res) => {
     let body = [];
     req.on('data', chunk => body.push(chunk));
     req.on('end', () => {
+        res.setHeader('Content-Type', 'application/json');
         body = JSON.parse(Buffer.concat(body).toString());
         //console.log(body);
         if (req.url === '/start') message = start(body);
-        if (req.url === '/move') message = move(body);
+        if (req.url === '/move') {
+            move(body, respond);
+            return;
+        }
         if (req.url === '/set-move') message = setMove(body);
         if (req.url === '/get-state') message = getState(body);
-        return respond(message);
+        respond(message);
     });
 
     function respond(message) {
-        res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(message));
     }
 }).listen(8888, "0.0.0.0");
