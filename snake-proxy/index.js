@@ -126,13 +126,13 @@ function setMove(data) {
     console.log("set-move", data, d);
     gameInstance.player.move = d;
     if (gameResponse && waitingForSnakeMove) {
+        waitingForSnakeMove = false;
         gameResponse({
             move: gameInstance.player.move,
             taunt: "Boop the snoot!",
         });
         gameResponse = null;
     }
-    waitingForSnakeMove = false;
     return getState();
 }
 
