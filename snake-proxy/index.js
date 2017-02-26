@@ -8,7 +8,8 @@ var count = 0;
 var gameState = null;
 var waitingForSnakeMove = false;
 var gameInstance = null;
-var gameResponse = null;
+var moveResponse = null;
+var setMoveResponse = null;
 var gameResponseTimeout = null;
 var gameTimeout = 5000;
 
@@ -64,7 +65,7 @@ class GameModel {
     }
     wipeBoard() {
         this.board = [];
-        for (var i = 0; i < this.height; i++) {
+        for (let i = 0; i < this.height; i++) {
             this.board.push(new Array(this.width).fill(0));
         }
     }
@@ -105,15 +106,20 @@ function move(data, res) {
         gameInstance = new GameModel(data);
     }
     gameInstance.updateState(data);
-    console.log("move", count++, data , _.get(data, "test"));
+    //console.log("move", count++, data , _.get(data, "test"));
     if (waitingForSnakeMove) {
         // if the control AI hasn't responded, then let's use a fallback AI.
     }
-    waitingForSnakeMove = true;
-    gameResponse = res;
+    moveResponse = res;
+    if (setMoveResponse) {
+        setMoveResponse(getState());
+        setMoveResponse = null;
+        waitingForSnakeMove = true;
+    }
     setTimeout(() => {
-        if (gameResponse) {
-            gameResponse({
+        waitingForSnakeMove = false;
+        if (moveResponse) {
+            moveResponse({
                 move: gameInstance.player.move,
                 taunt: "Boop the snoot!",
             });
@@ -121,25 +127,32 @@ function move(data, res) {
     }, gameTimeout);
 }
 
-function setMove(data) {
+function setMove(data, res) {
     var d = _.get(data, "d");
     console.log("set-move", data, d);
-    gameInstance.player.move = d;
-    if (gameResponse && waitingForSnakeMove) {
-        waitingForSnakeMove = false;
-        gameResponse({
-            move: gameInstance.player.move,
-            taunt: "Boop the snoot!",
-        });
-        gameResponse = null;
+    if (gameInstance) {
+        _.set(gameInstance, "player.move", d);
+        if (moveResponse && waitingForSnakeMove) {
+            setMoveResponse = res;
+            waitingForSnakeMove = false;
+            moveResponse({
+                move: gameInstance.player.move,
+                taunt: "Boop the snoot!",
+            });
+            moveResponse = null;
+        } else {
+            res(getState());
+        }
+    } else {
+        res("Game not started");
     }
-    return getState();
 }
 
 function getState() {
     return {
-        gameState: gameInstance.gameState,
-        waitingForSnakeMove: waitingForSnakeMove
+        gameState: _.get(gameInstance, "gameState"),
+        waitingForSnakeMove: waitingForSnakeMove,
+        count: count
     }
 }
 
@@ -155,15 +168,22 @@ http.createServer((req, res) => {
     let body = [];
     req.on('data', chunk => body.push(chunk));
     req.on('end', () => {
+        try {
+            body = JSON.parse(Buffer.concat(body).toString());
+        } catch (e) {
+            respond("Bad Message");
+        }
         res.setHeader('Content-Type', 'application/json');
-        body = JSON.parse(Buffer.concat(body).toString());
         //console.log(body);
         if (req.url === '/start') message = start(body);
         if (req.url === '/move') {
             move(body, respond);
             return;
         }
-        if (req.url === '/set-move') message = setMove(body);
+        if (req.url === '/set-move') {
+            setMove(body, respond);
+            return;
+        }
         if (req.url === '/get-state') message = getState(body);
         respond(message);
     });
