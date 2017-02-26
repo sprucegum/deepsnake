@@ -10,9 +10,12 @@ var waitingForSnakeMove = false;
 var gameInstance = null;
 var moveResponse = null;
 var setMoveResponse = null;
-var gameResponseTimeout = null;
+var moveResponseTimeout = null;
 var gameTimeout = 5000;
 
+/**
+ * The snake and its fallback AI
+ */
 class SnakeModel {
     constructor(snakeJSON, gameModel) {
         this.gameModel = gameModel;
@@ -38,6 +41,9 @@ class SnakeModel {
     }
 }
 
+/**
+ * The Game State and functions to transform the gameboard
+ */
 class GameModel {
     constructor (gameState) {
         this.gameState = gameState;
@@ -89,6 +95,12 @@ class GameModel {
     }
 }
 
+/**
+ * /start
+ * Called when the central server starts the game by hitting our /start endpoint
+ * @param game
+ * @returns {{name: string, color: string}}
+ */
 function start(game) {
     gameState = game;
     gameInstance = null;
@@ -101,6 +113,13 @@ function start(game) {
     }
 }
 
+/**
+ * /move
+ * Called when the central server give us the result of our last action and requests our current move.
+ * We have ~200ms to respond
+ * @param data
+ * @param res
+ */
 function move(data, res) {
     if (!gameInstance) {
         gameInstance = new GameModel(data);
@@ -116,7 +135,7 @@ function move(data, res) {
         setMoveResponse = null;
         waitingForSnakeMove = true;
     }
-    setTimeout(() => {
+    moveResponseTimeout = setTimeout(() => {
         waitingForSnakeMove = false;
         if (moveResponse) {
             moveResponse({
@@ -127,12 +146,18 @@ function move(data, res) {
     }, gameTimeout);
 }
 
+/**
+ * /set-move
+ * @param data
+ * @param res
+ */
 function setMove(data, res) {
     var d = _.get(data, "d");
     console.log("set-move", data, d);
     if (gameInstance) {
         _.set(gameInstance, "player.move", d);
         if (moveResponse && waitingForSnakeMove) {
+            clearTimeout(moveResponseTimeout);
             setMoveResponse = res;
             waitingForSnakeMove = false;
             moveResponse({
@@ -148,6 +173,10 @@ function setMove(data, res) {
     }
 }
 
+/**
+ * /get-state
+ * @returns {{gameState: *, waitingForSnakeMove: boolean, count: number}}
+ */
 function getState() {
     return {
         gameState: _.get(gameInstance, "gameState"),
