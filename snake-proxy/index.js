@@ -24,11 +24,9 @@ class SnakeModel {
         this.name = _.get(snakeJSON, 'name');
         this.id = _.get(snakeJSON, 'id');
         this.move = "up";
-        this.coords = null;
     }
     updateState(snakeJSON) {
         this.snakeJSON = snakeJSON;
-        this.coords = _.get(snakeJSON, 'coords');
         console.log("snakeCoords", this.coords);
     }
     set move(move) {
@@ -39,6 +37,9 @@ class SnakeModel {
     get move() {
         // maybe do some last minute safety checks here
         return this.nextMove;
+    }
+    get coords () {
+        return _.get(this.snakeJSON, 'coords');
     }
 }
 
@@ -78,10 +79,28 @@ class GameModel {
     }
     populateBoard() {
         this.wipeBoard();
-        var player = _.get(this.gameState, 'player');
+        var player = _.get(this, 'player');
         if (player) {
-            console.log("player", player);
+            this.drawPlayer();
         }
+    }
+    drawPlayer () {
+        this.drawSnake(this.player, 5);
+    }
+    drawSnake (snake, color) {
+        let coords = _.get(snake, "coords");
+        coords.map((xy, i) => {
+            let hue = 0;
+            if (i == 0) {
+                hue = 1;
+            }
+            this.drawPixel(xy, color + hue);
+        });
+    }
+    drawPixel(xy, color) {
+        var x, y;
+        [x, y] = xy;
+        this.board[y][x] = color;
     }
     updateState (gameState) {
         this.gameState = gameState;
@@ -108,6 +127,10 @@ function start(game) {
     waitingForSnakeMove = true;
     count = 0;
     console.log("start", game ,_.get(game, "test"));
+    if (setMoveResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
+        setMoveResponse(getState());
+        setMoveResponse = null;
+    }
     return {
         name: 'SnakeMeat',
         color: '#bb2233',
@@ -167,7 +190,7 @@ function setMove(data, res) {
             });
             moveResponse = null;
         } else {
-            res(getState());
+            //res(getState());
         }
     } else {
         res("Game not started");
@@ -185,9 +208,9 @@ function getStartingState(data, res) {
 function getState() {
     console.log("get-state");
     return {
-        gameState: _.get(gameInstance, "gameState"),
+        board: _.get(gameInstance, "board"),
         waitingForSnakeMove: waitingForSnakeMove,
-        count: count
+        count: count,
     }
 }
 
