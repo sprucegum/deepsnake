@@ -10,6 +10,7 @@ var waitingForSnakeMove = false;
 var gameInstance = null;
 var moveResponse = null;
 var setMoveResponse = null;
+var getStartingStateResponse = null;
 var moveResponseTimeout = null;
 var gameTimeout = 5000;
 
@@ -125,9 +126,9 @@ function move(data, res) {
         gameInstance = new GameModel(data);
     }
     gameInstance.updateState(data);
-    //console.log("move", count++, data , _.get(data, "test"));
-    if (waitingForSnakeMove) {
-        // if the control AI hasn't responded, then let's use a fallback AI.
+    if (getStartingStateResponse) {
+        getStartingStateResponse(getState());
+        getStartingStateResponse = null;
     }
     moveResponse = res;
     if (setMoveResponse) {
@@ -173,11 +174,16 @@ function setMove(data, res) {
     }
 }
 
+function getStartingState(data, res) {
+    getStartingStateResponse = res;
+}
+
 /**
  * /get-state
  * @returns {{gameState: *, waitingForSnakeMove: boolean, count: number}}
  */
 function getState() {
+    console.log("get-state");
     return {
         gameState: _.get(gameInstance, "gameState"),
         waitingForSnakeMove: waitingForSnakeMove,
@@ -197,16 +203,20 @@ http.createServer((req, res) => {
     let body = [];
     req.on('data', chunk => body.push(chunk));
     req.on('end', () => {
+        res.setHeader('Content-Type', 'application/json');
         try {
             body = JSON.parse(Buffer.concat(body).toString());
         } catch (e) {
-            respond("Bad Message");
+            body = null;
         }
-        res.setHeader('Content-Type', 'application/json');
         //console.log(body);
         if (req.url === '/start') message = start(body);
         if (req.url === '/move') {
             move(body, respond);
+            return;
+        }
+        if (req.url === '/get-starting-state') {
+            getStartingState(body, respond);
             return;
         }
         if (req.url === '/set-move') {
