@@ -119,24 +119,20 @@ function move(data, res) {
             });
         }
     }, gameTimeout);
-    /*res({
-        move: gameInstance.player.move,
-        taunt: "Boop the snoot!",
-    });*/
 }
 
 function setMove(data) {
     var d = _.get(data, "d");
     console.log("set-move", data, d);
-    waitingForSnakeMove = false;
     gameInstance.player.move = d;
-    if (gameResponse) {
+    if (gameResponse && waitingForSnakeMove) {
         gameResponse({
             move: gameInstance.player.move,
             taunt: "Boop the snoot!",
         });
         gameResponse = null;
     }
+    waitingForSnakeMove = false;
 
 }
 
