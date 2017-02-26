@@ -133,13 +133,13 @@ function setMove(data) {
         gameResponse = null;
     }
     waitingForSnakeMove = false;
-
+    return getState();
 }
 
 function getState() {
     return {
-        gameState: gameState,
-        gameUpdated: waitingForSnakeMove
+        gameState: gameInstance.gameState,
+        waitingForSnakeMove: waitingForSnakeMove
     }
 }
 
