@@ -11,8 +11,10 @@ var gameInstance = null;
 var moveResponse = null;
 var setMoveResponse = null;
 var getStartingStateResponse = null;
+var getNextStateResponse = null;
 var moveResponseTimeout = null;
 var gameTimeout = 5000;
+
 
 /**
  * The snake and its fallback AI
@@ -27,7 +29,6 @@ class SnakeModel {
     }
     updateState(snakeJSON) {
         this.snakeJSON = snakeJSON;
-        console.log("snakeCoords", this.coords);
     }
     set move(move) {
         this.nextMove = move;
@@ -153,12 +154,12 @@ function move(data, res) {
         getStartingStateResponse(getState());
         getStartingStateResponse = null;
     }
-    moveResponse = res;
-    if (setMoveResponse) {
-        setMoveResponse(getState());
-        setMoveResponse = null;
-        waitingForSnakeMove = true;
+    if (getNextStateResponse) {
+        getNextStateResponse(getState());
+        getNextStateResponse = null;
     }
+    moveResponse = res;
+    waitingForSnakeMove = true;
     moveResponseTimeout = setTimeout(() => {
         waitingForSnakeMove = false;
         if (moveResponse) {
@@ -182,7 +183,6 @@ function setMove(data, res) {
         _.set(gameInstance, "player.move", d);
         if (moveResponse && waitingForSnakeMove) {
             clearTimeout(moveResponseTimeout);
-            setMoveResponse = res;
             waitingForSnakeMove = false;
             moveResponse({
                 move: gameInstance.player.move,
@@ -192,9 +192,8 @@ function setMove(data, res) {
         } else {
             //res(getState());
         }
-    } else {
-        setMoveResponse = res;
     }
+    res({success:true});
 }
 
 function getStartingState(data, res) {
@@ -212,6 +211,10 @@ function getState() {
         waitingForSnakeMove: waitingForSnakeMove,
         count: count,
     }
+}
+
+function getNextState(res) {
+    getNextStateResponse = res;
 }
 
 
@@ -246,7 +249,10 @@ http.createServer((req, res) => {
             setMove(body, respond);
             return;
         }
-        if (req.url === '/get-state') message = getState(body);
+        if (req.url === '/get-state') {
+            getNextState(respond);
+            return;
+        }
         respond(message);
     });
 
