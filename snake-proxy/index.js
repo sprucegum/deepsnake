@@ -122,15 +122,15 @@ class GameModel {
  * @returns {{name: string, color: string}}
  */
 function start(game) {
+    if (setMoveResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
+        setMoveResponse(getState());
+        setMoveResponse = null;
+    }
     gameState = game;
     gameInstance = null;
     waitingForSnakeMove = true;
     count = 0;
     console.log("start", game ,_.get(game, "test"));
-    if (setMoveResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
-        setMoveResponse(getState());
-        setMoveResponse = null;
-    }
     return {
         name: 'SnakeMeat',
         color: '#bb2233',
@@ -193,7 +193,7 @@ function setMove(data, res) {
             //res(getState());
         }
     } else {
-        res("Game not started");
+        setMoveResponse = res;
     }
 }
 
