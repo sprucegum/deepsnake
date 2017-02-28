@@ -53,7 +53,6 @@ class SnakeModel {
     }
     set move(move) {
         this.nextMove = move;
-        // insert some kind of safety here.
         this.rewardAI = true;
         if (!this.isSafe(this.nextMove)) {
             this.nextMove = this.getSafeDir();
@@ -64,7 +63,7 @@ class SnakeModel {
         return true;
     }
     isOpposite(dir1, dir2) {
-        console.log("testing is opposide", dir1, dir2);
+        console.log("testing if opposite", dir1, dir2);
         return (this.getOpposite(dir1) == dir2)
     }
     getOpposite(dir) {
@@ -91,27 +90,28 @@ class SnakeModel {
         let x , y;
         [x, y] = this.dirToVector(dir);
         let nextLocation = [c[0] + x, c[1] + y];
+        console.log("next location:", nextLocation);
         return (
             (nextLocation[0] >= 0) &&
             (nextLocation[0] < this.gameModel.width) &&
             (nextLocation[1] >= 0) &&
             (nextLocation[1] < this.gameModel.height) &&
-            (!this.coordInSnake(nextLocation)) &&
             (!this.isOpposite(dir, this.lastMove)) &&
+            (!this.coordInSnake(nextLocation)) &&
             (this.canReachTail(nextLocation))
         )
     }
     canReachTail(point) {
         let snakeLen = this.coords.length;
-        if (this.gameModel.pfGrid) {
+        if (this.gameModel.pfGrid && snakeLen > 4) {
             let grid = this.gameModel.pfGrid.clone();
-            let futureLength = this.justEaten() ? snakeLen -1 : snakeLen - 1;
+            let futureLength = snakeLen - 1;
             let futureTail = this.coords[futureLength];
             let aStar = new PF.AStarFinder();
             let hx, hy, tx, ty;
             [hx, hy] = point;
             [tx, ty] = futureTail;
-            //console.log("from:", point, "to:", futureTail);
+            console.log("from:", point, "to:", futureTail);
             let path = aStar.findPath(hx, hy, tx, ty, grid);
             console.log(path, path.length);
             return (path.length)
@@ -139,7 +139,7 @@ class SnakeModel {
         for (let i = 0; i < directions.length; i++) {
             let d = directions[i];
             if (this.isSafe(d)) {
-                console.log("safe direction", dir);
+                console.log("safe direction", d);
                 return d;
             }
         }
@@ -211,7 +211,7 @@ class GameModel {
     drawSnake (snake, color) {
         let coords = _.get(snake, "coords");
         console.log("snake:", coords);
-        let snakeLength = coords.length - 2;
+        let snakeLength = snake.justEaten() ? coords.length - 2 : coords.length - 1;
         coords.map((xy, i) => {
             let hue = 0;
             if (i == 0) {
