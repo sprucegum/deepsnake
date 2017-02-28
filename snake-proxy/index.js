@@ -45,9 +45,9 @@ class SnakeModel {
     }
     get reward () {
         var r = 1;
-/*        if (this.rewardAI) {
+        if (this.rewardAI) {
             r += 1;
-        }*/
+        }
         r += this.health - this.prevHealth;
         return r;
     }
@@ -58,10 +58,13 @@ class SnakeModel {
         if (!this.isSafe(this.nextMove)) {
             this.nextMove = this.getSafeDir();
             this.rewardAI = false;
+        } else {
+            console.log("safe!");
         }
         return true;
     }
     isOpposite(dir1, dir2) {
+        console.log("testing is opposide", dir1, dir2);
         return (this.getOpposite(dir1) == dir2)
     }
     getOpposite(dir) {
@@ -72,9 +75,6 @@ class SnakeModel {
             "right":"left"
         };
         return oppositeMap[dir]
-    }
-    vectorToDir() {
-
     }
     dirToVector(dir) {
         let dirMap = {
@@ -120,9 +120,11 @@ class SnakeModel {
     }
 
     coordInSnake(coord) {
+        console.log("testing coord in snake");
         return this.pointInList(this.coords, coord);
     }
     pointInList(list, point) {
+        console.log("list", list, "point", point);
         return list.reduce((lastVar, currentPoint) => {
             return (lastVar || (
                 currentPoint[0] == point[0] && currentPoint[1] == point[1]
@@ -137,11 +139,11 @@ class SnakeModel {
         for (let i = 0; i < directions.length; i++) {
             let d = directions[i];
             if (this.isSafe(d)) {
-                dir = d;
-                break;
+                console.log("safe direction", dir);
+                return d;
             }
         }
-        console.log("safe direction", dir);
+        console.log("last ditch direction", dir);
         return dir
     }
     get move() {
@@ -197,42 +199,9 @@ class GameModel {
         }
         this.drawFood();
     }
-/*    getAdjacency() {
-        let adj = [];
-        for
-    }*/
     drawPlayer () {
         this.drawSnake(this.player, 100 + this.player.health);
     }
-
-/*    get graph () {
-        let dirs = {
-            "up" : [-1, 0],
-            "down" : [1, 0],
-            "left" : [0, -1],
-            "right" : [0, 1]
-        };
-        let graph = this.board.reduce((g, row, rowIndex) => {
-            row.map((currentValue, colIndex) => {
-                let links = {};
-                ["up", "down", "left", "right"].map((dir) => {
-                    let y, x;
-                    [y, x], dirs[dir];
-                    if (this.board[rowIndex + y][colIndex + x] <= 1) {
-                        g[this.graphIndexName([x, y])]
-                    }
-                });
-                g["n" + rowIndex] = links;
-            });
-        }, {});
-    }*/
-
-    graphIndexName(xy){
-        let x, y;
-        [x, y] = xy;
-        return "x" + x + "y" + y;
-    }
-
     drawFood () {
         var foods = _.get(this.gameState, 'food', []);
         foods.map((food) => {
@@ -286,6 +255,8 @@ class GameModel {
  */
 function start(game) {
     if (getNextStateResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
+        let player = gameInstance.player;
+        console.log("player", player);
         let state = getState();
         state.terminal = true;
         state.reward = -10;
