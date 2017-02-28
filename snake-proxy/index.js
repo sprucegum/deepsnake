@@ -257,6 +257,8 @@ function start(game) {
     if (getNextStateResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
         let player = gameInstance.player;
         console.log("player", player);
+        let health = _.get(player, "health");
+        console.log("health", health);
         let state = getState();
         state.terminal = true;
         state.reward = -10;
