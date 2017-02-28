@@ -25,15 +25,96 @@ class SnakeModel {
         this.snakeJSON = snakeJSON;
         this.name = _.get(snakeJSON, 'name');
         this.id = _.get(snakeJSON, 'id');
+        this.age = 0;
+        this.health = _.get(snakeJSON, 'health_points');
+        this.prevHealth = this.health;
+        this.lastMove = null;
+        this.rewardAI = true;
         this.move = "up";
     }
     updateState(snakeJSON) {
+        this.lastMove = this.nextMove;
+        this.age++;
+        this.prevHealth = this.health;
         this.snakeJSON = snakeJSON;
+        this.health = _.get(snakeJSON, 'health_points');
+    }
+    get reward () {
+        var r = 0;
+        if (this.rewardAI) {
+            r += 1;
+        }
+        r += this.health - this.prevHealth;
+        return r;
     }
     set move(move) {
         this.nextMove = move;
         // insert some kind of safety here.
+        this.rewardAI = true;
+        if (this.isOpposite(this.lastMove, this.nextMove)) {
+            this.nextMove = this.lastMove;
+            this.rewardAI = false;
+        }
+        if (!this.isSafe(this.nextMove)) {
+            this.nextMove = this.getSafeDir();
+            this.rewardAI = false;
+        }
         return true;
+    }
+    isOpposite(dir1, dir2) {
+        return (this.getOpposite(dir1) == dir2)
+    }
+    getOpposite(dir) {
+        let oppositeMap = {
+            "up":"down",
+            "down":"up",
+            "left":"right",
+            "right":"left"
+        };
+        return oppositeMap[dir]
+    }
+    vectorToDir() {
+
+    }
+    dirToVector(dir) {
+        let dirMap = {
+            up : [0, -1],
+            down: [0, 1],
+            left: [-1, 0],
+            right: [1, 0]
+        };
+        return dirMap[dir];
+    }
+    isSafe(dir) {
+        let c = this.coords[0];
+        let x , y;
+        [x, y] = this.dirToVector(dir);
+        let nextLocation = [c[0] + x, c[1] + y];
+        return (
+            (nextLocation[0] >= 0) &&
+            (nextLocation[0] < this.gameModel.width) &&
+            (nextLocation[1] >= 0) &&
+            (nextLocation[1] < this.gameModel.height) &&
+            (!this.coordInSnake(nextLocation))
+        )
+    }
+    coordInSnake(coord) {
+        return (_.findIndex(this.coords, coord) > -1);
+    }
+    getSafeDir() {
+        let directions = ["up", "down", "left", "right"];
+        directions = _.shuffle(_.difference(directions, [this.getOpposite(this.lastMove)]));
+        console.log("possible directions", directions);
+        let dir = this.move;
+        for (let i = 0; i < directions.length; i++) {
+            let d = directions[i];
+            if (this.isSafe(d)) {
+                dir = d;
+                continue;
+            }
+        }
+        console.log("safe direction", dir);
+        return dir
     }
     get move() {
         // maybe do some last minute safety checks here
@@ -84,9 +165,45 @@ class GameModel {
         if (player) {
             this.drawPlayer();
         }
+        this.drawFood();
     }
     drawPlayer () {
         this.drawSnake(this.player, 5);
+    }
+
+/*    get graph () {
+        let dirs = {
+            "up" : [-1, 0],
+            "down" : [1, 0],
+            "left" : [0, -1],
+            "right" : [0, 1]
+        };
+        let graph = this.board.reduce((g, row, rowIndex) => {
+            row.map((currentValue, colIndex) => {
+                let links = {};
+                ["up", "down", "left", "right"].map((dir) => {
+                    let y, x;
+                    [y, x], dirs[dir];
+                    if (this.board[rowIndex + y][colIndex + x] <= 1) {
+                        g[this.graphIndexName([x, y])]
+                    }
+                });
+                g["n" + rowIndex] = links;
+            });
+        }, {});
+    }*/
+
+    graphIndexName(xy){
+        let x, y;
+        [x, y] = xy;
+        return "x" + x + "y" + y;
+    }
+
+    drawFood () {
+        var foods = _.get(this.gameState, 'food', []);
+        foods.map((food) => {
+            this.drawPixel(food, 10);
+        });
     }
     drawSnake (snake, color) {
         let coords = _.get(snake, "coords");
@@ -114,6 +231,9 @@ class GameModel {
     set player (player) {
         this.playerId = player.id;
     }
+    get reward () {
+        return this.player.reward;
+    }
 }
 
 /**
@@ -123,9 +243,12 @@ class GameModel {
  * @returns {{name: string, color: string}}
  */
 function start(game) {
-    if (setMoveResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
-        setMoveResponse(getState());
-        setMoveResponse = null;
+    if (getNextStateResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
+        let state = getState();
+        state.terminal = true;
+        state.reward = -10;
+        getNextStateResponse(state);
+        getNextStateResponse = null;
     }
     gameState = game;
     gameInstance = null;
@@ -146,6 +269,7 @@ function start(game) {
  * @param res
  */
 function move(data, res) {
+    console.log("move");
     if (!gameInstance) {
         gameInstance = new GameModel(data);
     }
@@ -164,7 +288,7 @@ function move(data, res) {
         waitingForSnakeMove = false;
         if (moveResponse) {
             moveResponse({
-                move: gameInstance.player.move,
+                move: _.get(gameInstance, "player.move"),
                 taunt: "Boop the snoot!",
             });
         }
@@ -210,6 +334,8 @@ function getState() {
         board: _.get(gameInstance, "board"),
         waitingForSnakeMove: waitingForSnakeMove,
         count: count,
+        reward: _.get(gameInstance, 'reward'),
+        terminal: false
     }
 }
 
