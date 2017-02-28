@@ -3,6 +3,7 @@
  */
 const http = require('http');
 const _ = require('lodash');
+const PF = require('pathfinding');
 
 var count = 0;
 var gameState = null;
@@ -39,11 +40,14 @@ class SnakeModel {
         this.snakeJSON = snakeJSON;
         this.health = _.get(snakeJSON, 'health_points');
     }
+    justEaten() {
+        return (this.health > this.prevHealth);
+    }
     get reward () {
-        var r = 0;
-        if (this.rewardAI) {
+        var r = 1;
+/*        if (this.rewardAI) {
             r += 1;
-        }
+        }*/
         r += this.health - this.prevHealth;
         return r;
     }
@@ -51,10 +55,6 @@ class SnakeModel {
         this.nextMove = move;
         // insert some kind of safety here.
         this.rewardAI = true;
-        if (this.isOpposite(this.lastMove, this.nextMove)) {
-            this.nextMove = this.lastMove;
-            this.rewardAI = false;
-        }
         if (!this.isSafe(this.nextMove)) {
             this.nextMove = this.getSafeDir();
             this.rewardAI = false;
@@ -86,6 +86,7 @@ class SnakeModel {
         return dirMap[dir];
     }
     isSafe(dir) {
+        console.log("testing dir:", dir);
         let c = this.coords[0];
         let x , y;
         [x, y] = this.dirToVector(dir);
@@ -95,11 +96,38 @@ class SnakeModel {
             (nextLocation[0] < this.gameModel.width) &&
             (nextLocation[1] >= 0) &&
             (nextLocation[1] < this.gameModel.height) &&
-            (!this.coordInSnake(nextLocation))
+            (!this.coordInSnake(nextLocation)) &&
+            (!this.isOpposite(dir, this.lastMove)) &&
+            (this.canReachTail(nextLocation))
         )
     }
+    canReachTail(point) {
+        let snakeLen = this.coords.length;
+        if (this.gameModel.pfGrid) {
+            let grid = this.gameModel.pfGrid.clone();
+            let futureLength = this.justEaten() ? snakeLen -1 : snakeLen - 1;
+            let futureTail = this.coords[futureLength];
+            let aStar = new PF.AStarFinder();
+            let hx, hy, tx, ty;
+            [hx, hy] = point;
+            [tx, ty] = futureTail;
+            //console.log("from:", point, "to:", futureTail);
+            let path = aStar.findPath(hx, hy, tx, ty, grid);
+            console.log(path, path.length);
+            return (path.length)
+        }
+        return true;
+    }
+
     coordInSnake(coord) {
-        return (_.findIndex(this.coords, coord) > -1);
+        return this.pointInList(this.coords, coord);
+    }
+    pointInList(list, point) {
+        return list.reduce((lastVar, currentPoint) => {
+            return (lastVar || (
+                currentPoint[0] == point[0] && currentPoint[1] == point[1]
+            ))
+        }, false);
     }
     getSafeDir() {
         let directions = ["up", "down", "left", "right"];
@@ -110,7 +138,7 @@ class SnakeModel {
             let d = directions[i];
             if (this.isSafe(d)) {
                 dir = d;
-                continue;
+                break;
             }
         }
         console.log("safe direction", dir);
@@ -136,6 +164,7 @@ class GameModel {
         this.you = _.get(gameState, 'you');
         this.board = [];
         this.snakes = {};
+        this.pfGrid = null;
         this.makeSnakes();
         this.player = _.get(this.snakes, this.you);
         this.populateBoard();
@@ -155,6 +184,7 @@ class GameModel {
     }
     wipeBoard() {
         this.board = [];
+        this.pfGrid = new PF.Grid(this.width, this.height);
         for (let i = 0; i < this.height; i++) {
             this.board.push(new Array(this.width).fill(0));
         }
@@ -167,8 +197,12 @@ class GameModel {
         }
         this.drawFood();
     }
+/*    getAdjacency() {
+        let adj = [];
+        for
+    }*/
     drawPlayer () {
-        this.drawSnake(this.player, 5);
+        this.drawSnake(this.player, 100 + this.player.health);
     }
 
 /*    get graph () {
@@ -202,17 +236,25 @@ class GameModel {
     drawFood () {
         var foods = _.get(this.gameState, 'food', []);
         foods.map((food) => {
-            this.drawPixel(food, 10);
+            this.drawPixel(food, 100);
         });
     }
     drawSnake (snake, color) {
         let coords = _.get(snake, "coords");
+        console.log("snake:", coords);
+        let snakeLength = coords.length - 2;
         coords.map((xy, i) => {
             let hue = 0;
             if (i == 0) {
                 hue = 1;
             }
             this.drawPixel(xy, color + hue);
+            if (i < snakeLength) { // Add the first half of the snake to the "wall" list for pathfinding
+                console.log("s", xy);
+                let x, y;
+                [x, y] = xy;
+                this.pfGrid.setWalkableAt(x, y, false);
+            }
         });
     }
     drawPixel(xy, color) {
