@@ -41,7 +41,7 @@ class SnakeModel {
         this.health = _.get(snakeJSON, 'health_points');
     }
     justEaten() {
-        return (this.health > this.prevHealth);
+        return (this.health >= this.prevHealth);
     }
     get reward () {
         var r = 1;
