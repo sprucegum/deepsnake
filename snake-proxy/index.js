@@ -52,6 +52,10 @@ class SnakeModel {
         return r;
     }
     set move(move) {
+        if (move == "food") {
+            move = "up";
+            move = this.getFoodDir();
+        }
         this.nextMove = move;
         this.rewardAI = true;
         if (!this.isSafe(this.nextMove)) {
@@ -62,6 +66,37 @@ class SnakeModel {
         }
         return true;
     }
+    getFoodDir() {
+        let foods = _.get(this, "gameModel.foods");
+        console.log("foodsRaw:", foods);
+        let headP = new Point(this.coords[0]);
+        let grid = _.get(this, "gameModel.pfGrid");
+        if (foods && grid) {
+            foods = _.sortBy(foods, (foodC) => {
+                let foodPoint = new Point(foodC);
+                let l = 0;
+                l = headP.astar(foodPoint, grid).length;
+                if (l == 0) {
+                    l = 20 * 20 + 1;
+                }
+                return l;
+            });
+            for (let i = 0; i < foods.length; i++) {
+                let foodPoint = new Point(foods[i]);
+                let foodPath = headP.astar(foodPoint, grid);
+                console.log("foodpath:", foodPath, "head:", headP, "food:", foodPoint);
+                if (foodPath.length) {
+                    let nextPoint = new Point(foodPath[1]);
+                    let nd  = nextPoint.sub(headP).dir;
+                    console.log("foodDir", nd);
+                    return nd;
+                }
+            }
+        }
+        console.log("fuck");
+        return "up";
+    };
+
     isOpposite(dir1, dir2) {
         console.log("testing if opposite", dir1, dir2);
         return (this.getOpposite(dir1) == dir2)
@@ -118,7 +153,6 @@ class SnakeModel {
         }
         return true;
     }
-
     coordInSnake(coord) {
         console.log("testing coord in snake");
         return this.pointInList(this.coords, coord);
@@ -152,6 +186,115 @@ class SnakeModel {
     }
     get coords () {
         return _.get(this.snakeJSON, 'coords');
+    }
+}
+
+class Point {
+    constructor (xy) {
+        this.x = null;
+        this.y = null;
+        this.xy  = xy;
+    }
+    get xy() {
+        return [this.x, this.y]
+    }
+    set xy(xy) {
+        if (xy) {
+            [this.x, this.y] = xy;
+        }
+    }
+
+    /**
+     * @param {Point} point
+     * @returns {boolean}
+     */
+    isEqual(point) {
+        return (point.x == this.x && point.y == this.y)
+    }
+
+    /**
+     * @param {Vector} vector
+     * @returns {Point}
+     */
+    add(vector) {
+        return new Point([this.x + vector.x, this.y + vector.y]);
+    }
+
+    /**
+     * Only works for adjacent cells right now
+     * @param {Point} point
+     * @returns {Vector}
+     */
+    sub(point) {
+        return new Vector([this.x - point.x, this.y - point.y]);
+    }
+    manhattan(point) {
+        return ((Math.abs(point.x - this.y)) + (Math.abs(point - this.x)));
+    }
+    astar(point, grid) {
+        let aStar = new PF.AStarFinder();
+        let hx, hy, tx, ty;
+        [hx, hy] = this.xy;
+        [tx, ty] = point.xy;
+        let g = grid.clone();
+        g.setWalkableAt(point.x, point.y, true);
+        return aStar.findPath(hx, hy, tx, ty, g);
+    }
+}
+class PointList {
+    constructor (list) {
+        this.path = [];
+        list.map((coords) => {
+            this.path.push(new Point(coords));
+        });
+    }
+    /**
+     * @param {Point} point
+     * @returns {boolean}
+     */
+    inList(point) {
+        for (let i = 0; i < this.path; i++) {
+            let thisPoint = this.path[i];
+            if (thisPoint.isEqual(point)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    get length () {
+        return this.path.length;
+    }
+}
+class PointPath extends PointList {
+    constructor (list) {
+        super(list);
+    }
+}
+
+class Vector extends Point {
+    constructor (xy) {
+        super(xy);
+    }
+    get dir () {
+        if (this.x == -1) {
+            return "left";
+        } else if (this.x == 1) {
+            return "right";
+        } else if (this.y == -1) {
+            return "up";
+        } else if (this.y == 1) {
+            return "down"
+        }
+        return null;
+    }
+    set dir (dir) {
+        let dirMap = {
+            up : [0, -1],
+            down: [0, 1],
+            left: [-1, 0],
+            right: [1, 0]
+        };
+        this.xy = dirMap[dir];
     }
 }
 
@@ -244,6 +387,10 @@ class GameModel {
     }
     get reward () {
         return this.player.reward;
+    }
+    get foods () {
+        console.log("this.gameState", this.gameState);
+        return _.get(this.gameState, "food");
     }
 }
 
