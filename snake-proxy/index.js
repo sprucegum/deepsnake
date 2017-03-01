@@ -155,7 +155,8 @@ class SnakeModel {
     }
     coordInSnake(coord) {
         console.log("testing coord in snake");
-        return this.pointInList(this.coords, coord);
+        let snakeC = this.coords.slice(0,-1);
+        return this.pointInList(snakeC, coord);
     }
     pointInList(list, point) {
         console.log("list", list, "point", point);
@@ -354,18 +355,22 @@ class GameModel {
     drawSnake (snake, color) {
         let coords = _.get(snake, "coords");
         console.log("snake:", coords);
-        let snakeLength = snake.justEaten() ? coords.length - 2 : coords.length - 1;
+        let snakeLength = coords.length;
         coords.map((xy, i) => {
             let hue = 0;
             if (i == 0) {
                 hue = 1;
             }
             this.drawPixel(xy, color + hue);
-            if (i < snakeLength) { // Add the first half of the snake to the "wall" list for pathfinding
+            if (i < snakeLength -1) { // Add the first half of the snake to the "wall" list for pathfinding
                 console.log("s", xy);
                 let x, y;
                 [x, y] = xy;
                 this.pfGrid.setWalkableAt(x, y, false);
+            } else { // set the last element as walkable since our tail should always be safe.
+                let x, y;
+                [x, y] = xy;
+                this.pfGrid.setWalkableAt(x, y, true);
             }
         });
     }
@@ -449,6 +454,7 @@ function move(data, res) {
     moveResponseTimeout = setTimeout(() => {
         waitingForSnakeMove = false;
         if (moveResponse) {
+            _.set(gameInstance, "player.move", "food");
             moveResponse({
                 move: _.get(gameInstance, "player.move"),
                 taunt: "Boop the snoot!",
