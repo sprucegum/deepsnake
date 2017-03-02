@@ -18,6 +18,7 @@ var gameTimeout = 100;
 var dummy = true;
 var snakeName = _.get(process.env, "SNAKE_NAME", "SnakeMeat");
 var snakeColor = _.get(process.env, "SNAKE_COLOR", "#bb2233");
+var justWon = false;
 
 
 /**
@@ -48,6 +49,11 @@ class SnakeModel {
     }
     get reward () {
         var r = 1;
+        if (_.get(this.gameModel, "gameState.dead_snakes.length", null) ) {
+            r += 100;
+            justWon = true;
+            console.log("GOT EM!");
+        }
         if (this.rewardAI) {
             r += 1;
         }
@@ -427,7 +433,13 @@ function start(game) {
         console.log("health", health);
         let state = getState();
         state.terminal = true;
-        state.reward = -10;
+        if (justWon) {
+            state.reward = 200;
+
+        } else {
+            state.reward = 100;
+        }
+        justWon = false;
         getNextStateResponse(state);
         getNextStateResponse = null;
     }
