@@ -14,7 +14,7 @@ var setMoveResponse = null;
 var getStartingStateResponse = null;
 var getNextStateResponse = null;
 var moveResponseTimeout = null;
-var gameTimeout = 5000;
+var gameTimeout = 100;
 
 
 /**
