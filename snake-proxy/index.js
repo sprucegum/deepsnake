@@ -321,6 +321,16 @@ class GameModel {
             this.snakes[snake.id] = new SnakeModel(snake, this);
         });
     }
+    get enemies () {
+        return (_.filter(this.snakes, (snake) => {
+            snake.id !== this.playerId;
+        }))
+    }
+    drawEnemies () {
+        this.enemies.map((enemy) => {
+            this.drawSnake(enemy, 50);
+        });
+    }
     updateSnakes() {
         var snakes = _.get(this.gameState, 'snakes');
         snakes.map((snake) => {
@@ -342,6 +352,7 @@ class GameModel {
             this.drawPlayer();
         }
         this.drawFood();
+        this.drawEnemies();
     }
     drawPlayer () {
         this.drawSnake(this.player, 100 + this.player.health);
