@@ -15,6 +15,9 @@ var getStartingStateResponse = null;
 var getNextStateResponse = null;
 var moveResponseTimeout = null;
 var gameTimeout = 100;
+var dummy = true;
+var snakeName = _.get(process.env, "SNAKE_NAME", "SnakeMeat");
+var snakeColor = _.get(process.env, "SNAKE_COLOR", "#bb2233");
 
 
 /**
@@ -434,8 +437,8 @@ function start(game) {
     count = 0;
     console.log("start", game ,_.get(game, "test"));
     return {
-        name: 'SnakeMeat',
-        color: '#bb2233',
+        name: snakeName,
+        color: snakeColor,
     }
 }
 
@@ -462,16 +465,21 @@ function move(data, res) {
     }
     moveResponse = res;
     waitingForSnakeMove = true;
+    let responseTime = gameTimeout;
+    if (dummy) {
+        responseTime = 5;
+    }
     moveResponseTimeout = setTimeout(() => {
         waitingForSnakeMove = false;
         if (moveResponse) {
+            dummy = true;
             _.set(gameInstance, "player.move", "food");
             moveResponse({
                 move: _.get(gameInstance, "player.move"),
                 taunt: "Boop the snoot!",
             });
         }
-    }, gameTimeout);
+    }, responseTime);
 }
 
 /**
@@ -480,6 +488,7 @@ function move(data, res) {
  * @param res
  */
 function setMove(data, res) {
+    dummy = false;
     var d = _.get(data, "d");
     console.log("set-move", data, d);
     if (gameInstance) {
