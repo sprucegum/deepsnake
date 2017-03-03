@@ -200,11 +200,14 @@ class SnakeModel {
         directions = _.shuffle(_.difference(directions, [this.getOpposite(this.lastMove)]));
         console.log("possible directions", directions);
         let dir = this.move;
+        let firstIsWalkable = null;
         for (let i = 0; i < directions.length; i++) {
             let d = directions[i];
             if (this.isWalkable(d)) {
                 console.log(d, " isWalkable");
-                dir = d;
+                if (!firstIsWalkable) {
+                   dir = d;
+                }
                 if (this.isSafe(d)) {
                     console.log("safe direction", d);
                     return d;
@@ -213,7 +216,7 @@ class SnakeModel {
 
         }
         console.log("last ditch direction", dir);
-        return dir
+        return firstIsWalkable || dir;
     }
     get move() {
         // maybe do some last minute safety checks here
