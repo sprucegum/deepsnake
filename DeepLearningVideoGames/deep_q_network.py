@@ -14,7 +14,7 @@ from collections import deque
 GAME = 'snake' # the name of the game being played for log files
 ACTIONS = 5 # number of valid actions
 GAMMA = 0.999 # decay rate of past observations
-OBSERVE = 5000. # timesteps to observe before training
+OBSERVE = 500. # timesteps to observe before training
 EXPLORE = 50000. # frames over which to anneal epsilon
 FINAL_EPSILON = 0.001  # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon

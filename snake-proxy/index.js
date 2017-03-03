@@ -441,8 +441,7 @@ function start(game) {
     return {
         name: snakeName,
         color: snakeColor,
-        head_type: "",
-        head_url: _.sample(["bendr", "dead", "fang","pixel", "regular", "safe", "sand-worm", "shades", "smile", "tongue"]),
+        head_type: _.sample(["bendr", "dead", "fang","pixel", "regular", "safe", "sand-worm", "shades", "smile", "tongue"]),
         tail_type: _.sample(["small-rattle", "skinny-tail", "round-bum", "regular", "pixel", "freckled", "fat-rattle", "curled", "block-bum"])
     }
 }
