@@ -343,9 +343,13 @@ class GameModel {
         });
     }
     get enemies () {
-        return (_.filter(this.snakes, (snake) => {
-            snake.id !== this.playerId;
-        }))
+        let snakeArray = _.toArray(this.snakes);
+        console.log(snakeArray);
+        let enemies = _.filter(snakeArray, (snake) => {
+            return (snake.id !== this.player.id);
+        });
+        console.log("enemies", enemies);
+        return (enemies)
     }
     drawEnemies () {
         this.enemies.map((enemy) => {
@@ -391,10 +395,10 @@ class GameModel {
         coords.map((xy, i) => {
             let hue = 0;
             if (i == 0) {
-                hue = 1;
+                hue = 10;
             }
             this.drawPixel(xy, color + hue);
-            if (i < snakeLength -1) { // Add the first half of the snake to the "wall" list for pathfinding
+            if (i < snakeLength -1) {
                 console.log("s", xy);
                 let x, y;
                 [x, y] = xy;
