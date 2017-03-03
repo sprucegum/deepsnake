@@ -206,7 +206,7 @@ class SnakeModel {
             if (this.isWalkable(d)) {
                 console.log(d, " isWalkable");
                 if (!firstIsWalkable) {
-                   dir = d;
+                   firstIsWalkable = d;
                 }
                 if (this.isSafe(d)) {
                     console.log("safe direction", d);
