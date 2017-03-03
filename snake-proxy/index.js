@@ -144,20 +144,27 @@ class SnakeModel {
         [x, y] = this.dirToVector(dir);
         let nextLocation = [c[0] + x, c[1] + y];
         console.log("next location:", nextLocation);
+        let isWalkable = true;
+        let grid = this.grid;
+        [x, y] = nextLocation;
+        if (grid) {
+            isWalkable = grid.isWalkableAt(x, y);
+        }
         return (
-            (nextLocation[0] >= 0) &&
-            (nextLocation[0] < this.gameModel.width) &&
-            (nextLocation[1] >= 0) &&
-            (nextLocation[1] < this.gameModel.height) &&
-            (!this.isOpposite(dir, this.lastMove)) &&
-            (!this.coordInSnake(nextLocation)) &&
-            (this.canReachTail(nextLocation))
+            isWalkable && (this.canReachTail(nextLocation))
         )
+    }
+
+    get grid () {
+        if (this.gameModel.pfGrid) {
+            return this.gameModel.pfGrid.clone();
+        }
+        return null;
     }
     canReachTail(point) {
         let snakeLen = this.coords.length;
         if (this.gameModel.pfGrid && snakeLen > 4) {
-            let grid = this.gameModel.pfGrid.clone();
+            let grid = this.grid;
             let futureLength = snakeLen - 1;
             let futureTail = this.coords[futureLength];
             let aStar = new PF.AStarFinder();
@@ -170,11 +177,6 @@ class SnakeModel {
             return (path.length)
         }
         return true;
-    }
-    coordInSnake(coord) {
-        console.log("testing coord in snake");
-        let snakeC = this.coords.slice(0,-1);
-        return this.pointInList(snakeC, coord);
     }
     pointInList(list, point) {
         console.log("list", list, "point", point);
@@ -353,6 +355,7 @@ class GameModel {
     }
     drawEnemies () {
         this.enemies.map((enemy) => {
+            console.log("drawing enemy snake", enemy);
             this.drawSnake(enemy, 50);
         });
     }
