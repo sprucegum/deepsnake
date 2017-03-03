@@ -4,6 +4,8 @@
 const http = require('http');
 const _ = require('lodash');
 const PF = require('pathfinding');
+const request = require("request");
+const SERVER = "http://192.168.1.118:4000";
 
 var count = 0;
 var gameState = null;
@@ -29,20 +31,28 @@ class SnakeModel {
         this.gameModel = gameModel;
         this.snakeJSON = snakeJSON;
         this.name = _.get(snakeJSON, 'name');
-        this.id = _.get(snakeJSON, 'id');
         this.age = 0;
         this.health = _.get(snakeJSON, 'health_points');
         this.prevHealth = this.health;
         this.lastMove = null;
         this.rewardAI = true;
+        this.prevId = this.id;
+        this.gameEnded = false;
         this.move = "up";
+    }
+    get id () {
+        return _.get(this.snakeJSON, "id");
     }
     updateState(snakeJSON) {
         this.lastMove = this.nextMove;
         this.age++;
         this.prevHealth = this.health;
         this.snakeJSON = snakeJSON;
+        if (this.prevId != this.id) {
+            console.log("NEW GAME");
+        }
         this.health = _.get(snakeJSON, 'health_points');
+        this.prevId = this.id;
     }
     justEaten() {
         return (this.health >= this.prevHealth);
@@ -62,7 +72,6 @@ class SnakeModel {
     }
     set move(move) {
         if (move == "food") {
-            move = "up";
             move = this.getFoodDir();
         }
         this.nextMove = move;
@@ -102,7 +111,7 @@ class SnakeModel {
                 }
             }
         }
-        console.log("fuck");
+        console.log("heck");
         return "up";
     };
 
@@ -324,6 +333,9 @@ class GameModel {
         this.player = _.get(this.snakes, this.you);
         this.populateBoard();
     }
+    get id () {
+        return _.get(this.gameState, 'game_id');
+    }
     makeSnakes() {
         var snakes = _.get(this.gameState, 'snakes');
         snakes.map((snake) => {
@@ -426,31 +438,12 @@ class GameModel {
  * @returns {{name: string, color: string}}
  */
 function start(game) {
-    if (getNextStateResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
-        let player = gameInstance.player;
-        console.log("player", player);
-        let health = _.get(player, "health");
-        console.log("health", health);
-        let state = getState();
-        state.terminal = true;
-        if (justWon) {
-            state.reward = 200;
-
-        } else {
-            state.reward = 100;
-        }
-        justWon = false;
-        getNextStateResponse(state);
-        getNextStateResponse = null;
-    }
-    gameState = game;
-    gameInstance = null;
-    waitingForSnakeMove = true;
-    count = 0;
-    console.log("start", game ,_.get(game, "test"));
     return {
         name: snakeName,
         color: snakeColor,
+        head_type: "",
+        head_url: _.sample(["bendr", "dead", "fang","pixel", "regular", "safe", "sand-worm", "shades", "smile", "tongue"]),
+        tail_type: _.sample(["small-rattle", "skinny-tail", "round-bum", "regular", "pixel", "freckled", "fat-rattle", "curled", "block-bum"])
     }
 }
 
@@ -462,6 +455,47 @@ function start(game) {
  * @param res
  */
 function move(data, res) {
+    let newGame = true;
+    if (gameInstance) {
+        let currentSnakeID = _.get(data, "you");
+        let oldSnakeId = _.get(gameInstance, "player.id")
+        newGame = currentSnakeID != oldSnakeId;
+    }
+    if (newGame) {
+        if (gameInstance && getNextStateResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
+            let gId = _.get(gameInstance, "id");
+            let pId = _.get(gameInstance, "player.id");
+            let player = _.get(gameInstance, "player");
+            let nextResponse = getNextStateResponse;
+            request(SERVER + "/api/games", (error, response, body) => {
+                let games = JSON.parse(body);
+                console.log(games);
+                let game = _.head(_.filter(games, {id:gId}));
+                console.log("game", game);
+                let winners = _.get(game, "winners");
+                console.log("winners", winners);
+                let justWon = (_.indexOf(winners, pId) != -1);
+                console.log("justWon:", justWon, "pId", pId);
+                console.log("player", player);
+                let health = _.get(player, "health");
+                console.log("health", health);
+                let state = getState();
+                state.terminal = true;
+                if (justWon) {
+                    state.reward = 200;
+                    console.log("player won!");
+                } else {
+                    state.reward = -100;
+                }
+                nextResponse(state);
+            });
+        }
+        gameInstance = null;
+        waitingForSnakeMove = true;
+        getNextStateResponse = null;
+        count = 0;
+        console.log("start", data);
+    }
     console.log("move");
     if (!gameInstance) {
         gameInstance = new GameModel(data);
@@ -486,6 +520,7 @@ function move(data, res) {
         if (moveResponse) {
             dummy = true;
             _.set(gameInstance, "player.move", "food");
+            console.log("reward", _.get(gameInstance, "player.reward"));
             moveResponse({
                 move: _.get(gameInstance, "player.move"),
                 taunt: "Boop the snoot!",
