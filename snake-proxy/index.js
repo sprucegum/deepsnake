@@ -154,6 +154,15 @@ class SnakeModel {
             isWalkable && (this.canReachTail(nextLocation))
         )
     }
+    isWalkable(dir) {
+        let d = new Vector();
+        d.dir = dir;
+        let p = new Point(this.coords[0]);
+        let x, y;
+        [x, y] = p.add(d).xy;
+        let g = this.grid;
+        return g.isWalkableAt(x, y);
+    }
 
     get grid () {
         if (this.gameModel.pfGrid) {
@@ -193,10 +202,15 @@ class SnakeModel {
         let dir = this.move;
         for (let i = 0; i < directions.length; i++) {
             let d = directions[i];
-            if (this.isSafe(d)) {
-                console.log("safe direction", d);
-                return d;
+            if (this.isWalkable(d)) {
+                console.log(d, " isWalkable");
+                dir = d;
+                if (this.isSafe(d)) {
+                    console.log("safe direction", d);
+                    return d;
+                }
             }
+
         }
         console.log("last ditch direction", dir);
         return dir
@@ -356,7 +370,9 @@ class GameModel {
     drawEnemies () {
         this.enemies.map((enemy) => {
             console.log("drawing enemy snake", enemy);
-            this.drawSnake(enemy, 50);
+            let hasAdvantage = enemy.coords.length >= this.player.coords.length;
+            let healthMod = Math.floor(enemy.health/10);
+            this.drawSnake(enemy, 50 + healthMod, hasAdvantage);
         });
     }
     updateSnakes() {
@@ -391,10 +407,22 @@ class GameModel {
             this.drawPixel(food, 100);
         });
     }
-    drawSnake (snake, color) {
+    drawSnake (snake, color, hasAdvantage) {
         let coords = _.get(snake, "coords");
         console.log("snake:", coords);
         let snakeLength = coords.length;
+        let head = new Point(snake.coords[0]);
+        if (hasAdvantage) {
+            ["up", "down", "left", "right"].map((dir) => {
+                let d = new Vector();
+                d.dir = dir;
+                let x, y;
+                [x, y] = head.add(d).xy;
+                if (this.pfGrid.isInside(x, y)) {
+                    this.pfGrid.setWalkableAt(x, y, false);
+                }
+            });
+        }
         coords.map((xy, i) => {
             let hue = 0;
             if (i == 0) {
