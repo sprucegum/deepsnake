@@ -151,7 +151,7 @@ class SnakeModel {
             isWalkable = grid.isWalkableAt(x, y);
         }
         return (
-            isWalkable && (this.canReachTail(nextLocation))
+            !this.isOpposite(dir, this.lastMove) && isWalkable && (this.canReachTail(nextLocation))
         )
     }
     isWalkable(dir) {
