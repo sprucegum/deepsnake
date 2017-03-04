@@ -151,7 +151,6 @@ class SnakeModel {
             isWalkable = grid.isWalkableAt(x, y);
         }
         return (
-            (!this.coordInSnake(nextLocation)) &&
             !this.isOpposite(dir, this.lastMove) &&
             isWalkable &&
             (this.canReachTail(nextLocation))
@@ -380,7 +379,7 @@ class GameModel {
             let enemyHead = new Point(enemy.coords[0]);
             let hasAdvantage = (enemyHead.manhattanDistance(playerHead) <= 2);
             let healthMod = Math.floor(enemy.health/10);
-            this.drawSnake(enemy, 50 + healthMod, hasAdvantage, true);
+            this.drawSnake(enemy, 50 + healthMod, hasAdvantage);
         });
     }
     updateSnakes() {
@@ -442,12 +441,6 @@ class GameModel {
                 let x, y;
                 [x, y] = xy;
                 this.pfGrid.setWalkableAt(x, y, false);
-            } else { // set the last element as walkable since our tail should always be safe.
-                let x, y;
-                if (!isEnemy) {
-                    [x, y] = xy;
-                    this.pfGrid.setWalkableAt(x, y, true);
-                }
             }
         });
     }
