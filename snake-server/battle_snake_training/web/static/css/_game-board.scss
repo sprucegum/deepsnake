@@ -1,0 +1,30 @@
+.play-show {
+  @include outer-container;
+}
+
+.game-board {
+  height: 100%;
+  @include span-columns(8);
+  @include media($mobile) {
+    @include span-columns(12);
+  }
+  &-tile {
+    fill: $secondary-background-color;
+  }
+  &-table-top {
+    fill: transparent;
+  }
+}
+
+.obj-food {
+  fill: $obj-food-bg-color;
+}
+
+.obj-snake {
+  height: 1;
+  width: 1;
+  fill: transparent;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  stroke-width: $obj-snake-stroke-width;
+}

@@ -1,0 +1,8 @@
+<h2>New game</h2>
+
+<%= form_for @changeset, game_path(@conn, :create), fn f -> %>
+    <%= render "_form.html", form: f %>
+    <%= submit "Create game" %>
+<% end %>
+
+<%= link "Back", to: game_path(@conn, :index) %>
