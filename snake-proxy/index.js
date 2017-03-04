@@ -371,9 +371,11 @@ class GameModel {
         return (enemies)
     }
     drawEnemies () {
+        let playerHead  = new Point(this.player.coords[0]);
         this.enemies.map((enemy) => {
             console.log("drawing enemy snake", enemy);
-            let hasAdvantage = enemy.coords.length >= this.player.coords.length;
+            let enemyHead = new Point(enemy.coords[0]);
+            let hasAdvantage = enemy.coords.length >= this.player.coords.length && (enemyHead.manhattan(playerHead) < 2);
             let healthMod = Math.floor(enemy.health/10);
             this.drawSnake(enemy, 50 + healthMod, hasAdvantage);
         });
