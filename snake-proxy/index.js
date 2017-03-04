@@ -377,7 +377,7 @@ class GameModel {
             let enemyHead = new Point(enemy.coords[0]);
             let hasAdvantage = enemy.coords.length >= this.player.coords.length && (enemyHead.manhattanDistance(playerHead) <= 2);
             let healthMod = Math.floor(enemy.health/10);
-            this.drawSnake(enemy, 50 + healthMod, hasAdvantage);
+            this.drawSnake(enemy, 50 + healthMod, hasAdvantage, true);
         });
     }
     updateSnakes() {
@@ -412,7 +412,7 @@ class GameModel {
             this.drawPixel(food, 100);
         });
     }
-    drawSnake (snake, color, hasAdvantage) {
+    drawSnake (snake, color, hasAdvantage, isEnemy) {
         let coords = _.get(snake, "coords");
         console.log("snake:", coords);
         let snakeLength = coords.length;
@@ -441,8 +441,10 @@ class GameModel {
                 this.pfGrid.setWalkableAt(x, y, false);
             } else { // set the last element as walkable since our tail should always be safe.
                 let x, y;
-                [x, y] = xy;
-                this.pfGrid.setWalkableAt(x, y, true);
+                if (!isEnemy) {
+                    [x, y] = xy;
+                    this.pfGrid.setWalkableAt(x, y, true);
+                }
             }
         });
     }
