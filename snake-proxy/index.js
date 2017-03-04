@@ -266,7 +266,7 @@ class Point {
     sub(point) {
         return new Vector([this.x - point.x, this.y - point.y]);
     }
-    manhattan(point) {
+    manhattanDistance(point) {
         return ((Math.abs(point.x - this.y)) + (Math.abs(point - this.x)));
     }
     astar(point, grid) {
@@ -375,7 +375,7 @@ class GameModel {
         this.enemies.map((enemy) => {
             console.log("drawing enemy snake", enemy);
             let enemyHead = new Point(enemy.coords[0]);
-            let hasAdvantage = enemy.coords.length >= this.player.coords.length && (enemyHead.manhattan(playerHead) < 2);
+            let hasAdvantage = enemy.coords.length >= this.player.coords.length && (enemyHead.manhattanDistance(playerHead) < 2);
             let healthMod = Math.floor(enemy.health/10);
             this.drawSnake(enemy, 50 + healthMod, hasAdvantage);
         });
