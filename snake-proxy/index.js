@@ -497,7 +497,9 @@ function move(data, res) {
         let currentSnakeID = _.get(data, "you");
         let oldSnakeId = _.get(gameInstance, "player.id");
         newGame = currentSnakeID != oldSnakeId;
-        res(null);
+        if (newGame) {
+            res(null);
+        }
     }
     if (newGame) {
         if (gameInstance && getNextStateResponse) { // If the game is being restarted, reply to the setmove and inform the AI of failure.
